@@ -1,0 +1,70 @@
+***************************
+* gcscontrol - UDP command
+* Ryan Hunter <rghunter@bu.edu>
+* Boston University IML
+***************************
+
+Description:
+
+This modification to the GCS plugin allows control to be handed over to an external client via UDP. This is particularily useful for controling quadrotors via matlab. Currently the link is only one way, this plugin does not provide any AHRS information. We use a mocap system at the lab, so such information is of little use. However, this is kind of useless without a mocap system.
+
+Installation:
+
+Not a very good installation setup. I didnt want to tie my openpilot git repo to github so I initialized a new repository in the plugin directory. Probably not the most flexible choice, but it is what it is.
+
+To install you need to have the rest of the code, simply clone the openpilot repo. You should probably create a new branch imediatly to store this new plugin.
+
+	$ git clone git://git.openpilot.org/OpenPilot.git OpenPilot
+	$ git branch udp_control
+	$ git checkout udp_control
+
+Now go to the plugin source directory and remove the current control plugin:
+
+	$ cd ground/openpilotgcs/src/plugins
+	$ rm -rf gcscontrol
+
+Clone in the new code and commit this to your new branch
+
+	$ git clone https://github.com/rghunter/gcscontrol.git gcscontrol
+	$ git commit -a -m "added control UDP plugin"
+
+Simply recompile the gcs and you should be good to go!
+
+Note: if you need to rebase you openpilot directory, switch back to master and keep this code seperate (or merge your new rebased master into the udp_control branch. ALWAYS switch to the udp_control branch before rebasing agains my github repo and commit to your local udp_control branch. As long as you do this, you should have minimal problems with using two interleaved git repos.
+
+Usage:
+
+Plugin
+
+Using the UDP controller is pretty straight forward. As there are no default settings for the port and host, you must do this the first time you load the new GCS. You should only need to do it once (unless you need to change ports or host).Also, the settings are tied to your particular joystick. Thus, if you have multiple joystick settings page, you must do this for each joystick. Open the options page and click on the controller in the list box. go to the UDP tab and enter a port and host. I suggest localhost ('127.0.0.1') and port 2323.Save by clicking OK and select file "save defaults settings" to permentaly save thse new settings.
+
+You can also tie a joystick button of your choosing to turn on and off UDP control mode by selecting the buttons tab in the control options.
+
+To enable UDP control simply click the UDP control checkbox on control plugin. This is only enabled if you are in GCS Control mode. While the UDP controller is active, your joystick input will not have any affect until you exit UDP control mode.
+
+Matlab
+
+I have included a matlab object to control the GCS via UDP in the Matlab folder.
+Simply add this folder to your matlab path and initialize a GCSControl object:
+
+	$ control = GCSControl;
+	$ control.connect(<HOST>,<PORT>);
+
+You may now control your flight vehicle (if your in UDP control mode) by calling the command function:
+
+	$ control.command(<PITCH>,<YAW>,<ROLL>,<THROTTLE);
+
+Note that the values should be in decimal format and represent percent stick input as though you were flying with an RC controller.
+
+When you have finished, be sure to release the UDP port by calling:
+
+	$ control.close();
+
+
+Troubleshooting:
+
+As of now there are a few known bugs. I will update this as I either fix them, or continue to be lazy and find workarounds.
+
+If you notice the sticks on the display rapidly jump, this is usually a symptom of PiOS retaining write acces to the manual_control UAV object. When GCS Control check box is clicked, the remote object is placed in a read only mode. Sometimes this fails. To solve the problem simply toggle GCS Control until the problem disappears.
+
+I also noticed that arming and disarming via a joystick button fails while in UDP control mode. You must exit UDP control mode or manualy check the box with your mouse.
